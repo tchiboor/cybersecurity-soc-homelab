@@ -1,0 +1,12 @@
+*.iso
+*.qcow2
+*.vmdk
+*.log
+*.pcap
+*.cap
+*.zip
+*.tar.gz
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db
