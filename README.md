@@ -72,6 +72,28 @@ Wazuh SIEM
       ↓
 SOC dashboard alerts
 ```
+## Validated Detection Scenarios
+
+| Scenario | Tool | Evidence | Result |
+|---|---|---|---|
+| Network reconnaissance | Nmap | Suricata and firewall visibility | Detected |
+| Web-server assessment | Nikto | HTTP findings and IDS visibility | Observed |
+| SSH password guessing | Hydra | PAM logs and Wazuh rule `5551` | Detected |
+
+### SSH Password-Guessing Case Study
+
+A controlled Hydra simulation generated repeated SSH authentication failures
+against a temporary test account. The Ubuntu host recorded failed logins
+followed by a successful authentication attempt.
+
+Wazuh correlated the activity into a level-10 alert:
+
+```text
+PAM: Multiple failed logins in a small period of time.
+
+The alert mapped to MITRE ATT&CK: T1110 — Brute Force
+```
+
 ## Repository Structure
 - docs/ → design and implementation notes
 

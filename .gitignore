@@ -10,3 +10,16 @@
 *.tmp
 .DS_Store
 Thumbs.db
+# Lab-only credentials and temporary wordlists
+password.txt
+passwords.txt
+*.wordlist
+*.secret
+
+# Temporary lab credentials and sensitive files
+password.txt
+passwords.txt
+*.wordlist
+*.secret
+*.key
+.env
