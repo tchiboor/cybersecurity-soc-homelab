@@ -94,6 +94,22 @@ PAM: Multiple failed logins in a small period of time.
 The alert mapped to MITRE ATT&CK: T1110 — Brute Force
 ```
 
+### Alert Baseline and Noise Review
+
+After validating the Hydra SSH password-guessing alert, I generated normal SSH
+and HTTP traffic to compare benign behavior against attack activity.
+
+The baseline demonstrated the difference between:
+
+```text
+One isolated authentication failure
+→ monitor as low-priority telemetry
+
+Repeated failures in a short period
+→ correlated level-10 Wazuh alert
+→ investigate as potential compromise
+```
+
 ## Repository Structure
 - docs/ → design and implementation notes
 

@@ -1,0 +1,28 @@
+NORMAL SSH LOGIN
+Rule ID:55
+Rule description:
+Rule level:
+Source IP:
+Target agent:
+Timestamp:2026-06-04T14:05:27.5042
+
+ONE INCORRECT SSH PASSWORD
+Rule ID:5760
+Rule description:SSH Authentication Failed
+Rule level:5
+Source IP:10.10.30.10
+Target agent:10.10.10.10
+Timestamp:2026-06-04T14:05:27.5042
+
+NORMAL HTTP REQUESTS
+Visible in Wazuh:
+Visible in Apache logs:
+Suricata alert generated:
+Notes:
+
+HYDRA COMPARISON
+Rule ID: 5551
+Rule level: 10
+Description: PAM: Multiple failed logins in a small period of time.
+MITRE ATT&CK: T1110 — Brute Force
+Notes:
