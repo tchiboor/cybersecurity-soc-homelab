@@ -110,6 +110,24 @@ Repeated failures in a short period
 → investigate as potential compromise
 ```
 
+### Custom Wazuh Detection Engineering
+
+After establishing a normal-traffic baseline, I created a custom Wazuh
+correlation rule for a higher-risk SSH pattern:
+
+```text
+Five failed SSH login attempts
+→ successful login from the same source IP
+→ custom level-12 alert
+→ investigate possible account compromise
+```
+The rule was validated with:
+
+- wazuh-logtest
+- a live sequential Hydra simulation
+- a negative-control test
+- live-telemetry troubleshooting after identifying rsyslog message compression
+
 ## Repository Structure
 - docs/ → design and implementation notes
 

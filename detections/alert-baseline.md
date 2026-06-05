@@ -32,10 +32,10 @@ that requires analyst escalation.
 
 | Activity                    |   Wazuh Rule ID |    Alert Level | Result                          | Analyst Action                 |
 | --------------------------- | --------------: | -------------: | ------------------------------- | ------------------------------ |
-| Normal SSH login            | `[ADD RULE ID]` |  `[ADD LEVEL]` | Authentication success recorded | Retain as audit telemetry      |
-| One incorrect SSH password  | `[ADD RULE ID]` |  `[ADD LEVEL]` | Individual failure recorded     | Monitor; do not escalate alone |
-| Normal HTTP requests        |  `[ADD RESULT]` | `[ADD RESULT]` | Routine traffic                 | Retain as telemetry            |
-| Hydra SSH password guessing |          `5551` |           `10` | Correlated brute-force alert    | Investigate and escalate       |
+| Normal SSH login            | `5715` |  `3` | Authentication success recorded | Retain as audit telemetry      |
+| One incorrect SSH password  | `5715` |  `5` | Individual failure recorded     | Monitor; do not escalate alone |
+| Normal HTTP requests        |  ` `   |  ` ` | Routine traffic                 | Retain as telemetry            |
+| Hydra SSH password guessing | `5551` |  `10`| Correlated brute-force alert    | Investigate and escalate       |
 
 ## Comparison
 
