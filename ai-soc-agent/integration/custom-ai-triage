@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+"""Wazuh Integrator wrapper for the local read-only AI triage agent."""
+
+from __future__ import annotations
+
+import datetime as dt
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+TRIAGE_SCRIPT = Path(
+    "/var/ossec/integrations/ai-agent/live_triage.py"
+)
+
+PLAYBOOK = Path(
+    "/var/ossec/integrations/ai-agent/playbooks/"
+    "ssh-bruteforce-response.md"
+)
+
+REPORT_DIR = Path(
+    "/var/ossec/logs/ai-triage-reports"
+)
+
+LOG_FILE = Path(
+    "/var/ossec/logs/ai-triage-integration.log"
+)
+
+
+def write_log(message: str) -> None:
+    """Append a UTC timestamped message to the integration log."""
+    timestamp = dt.datetime.now(
+        dt.timezone.utc
+    ).isoformat()
+
+    with LOG_FILE.open(
+        "a",
+        encoding="utf-8",
+    ) as log_handle:
+        log_handle.write(
+            f"{timestamp} {message}\n"
+        )
+
+
+def main() -> int:
+    """Process one Wazuh alert file."""
+    if len(sys.argv) < 2:
+        write_log(
+            "ERROR: Missing Wazuh alert-file argument."
+        )
+        return 1
+
+    alert_path = Path(
+        sys.argv[1]
+    )
+
+    if not alert_path.exists():
+        write_log(
+            f"ERROR: Alert file does not exist: {alert_path}"
+        )
+        return 1
+
+    try:
+        alert = json.loads(
+            alert_path.read_text(
+                encoding="utf-8"
+            )
+        )
+    except (
+        OSError,
+        json.JSONDecodeError,
+    ) as exc:
+        write_log(
+            f"ERROR: Unable to read alert JSON: {exc}"
+        )
+        return 1
+
+    rule_id = str(
+        alert.get(
+            "rule",
+            {},
+        ).get(
+            "id",
+            "unknown",
+        )
+    )
+
+    timestamp = dt.datetime.now(
+        dt.timezone.utc
+    ).strftime(
+        "%Y%m%dT%H%M%SZ"
+    )
+
+    REPORT_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    output_path = REPORT_DIR / (
+        f"{timestamp}-rule-{rule_id}-ai-triage.md"
+    )
+
+    command = [
+        "/usr/bin/python3",
+        str(TRIAGE_SCRIPT),
+        str(alert_path),
+        "--playbook",
+        str(PLAYBOOK),
+        "--output",
+        str(output_path),
+    ]
+
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=180,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        write_log(
+            f"ERROR: AI triage timed out for rule {rule_id}."
+        )
+        return 1
+
+    if result.returncode != 0:
+        write_log(
+            "ERROR: AI triage failed for "
+            f"rule {rule_id}: {result.stderr.strip()}"
+        )
+        return 1
+
+    write_log(
+        "SUCCESS: AI triage report generated for "
+        f"rule {rule_id}: {output_path}"
+    )
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(
+        main()
+    )

@@ -154,4 +154,31 @@ The rule was validated with:
 ## Author
 
 Trevor Henry Chiboora
-Cybersecurity Research Engineer
+Cybersecurity Research Engineer## Local AI-Assisted SOC Triage
+
+After validating custom Wazuh rule `100101`, I added a local read-only
+AI-assisted triage workflow.
+
+```text
+Wazuh custom alert
+→ sanitized JSON fields
+→ local Ollama model
+→ AI-generated investigation recommendations
+→ Python-rendered authoritative evidence
+→ human analyst review
+```
+
+The initial use case detects a successful SSH login after five failed
+authentication attempts from the same source IP.
+
+The agent does not execute containment actions or modify security controls.
+
+Validation included:
+
+- a high-priority positive-control test;
+- a benign SSH-login test;
+- a manual Wazuh-to-AI integration test;
+- a live automatic AI-report test;
+- a routine-login negative-control test.
+
+[Read the AI SOC triage-agent documentation](ai-soc-agent/README.md)

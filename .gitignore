@@ -23,3 +23,11 @@ passwords.txt
 *.secret
 *.key
 .env
+
+# AI SOC triage temporary files
+custom-rule-passwords.txt
+hydra.restore
+rule-100101-full-alert.json
+*.restore
+__pycache__/
+*.pyc
