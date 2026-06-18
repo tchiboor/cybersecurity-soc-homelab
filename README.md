@@ -2,6 +2,24 @@
 
 A Proxmox-based cybersecurity homelab designed for attack simulation, intrusion detection, SIEM monitoring, and blue-team / red-team practice.
 
+## Skills Demonstrated
+
+- Network segmentation and firewall policy design (OPNsense, VLAN-style zoning)
+- SIEM deployment and administration (Wazuh)
+- Intrusion detection with Suricata (IDS/IPS)
+- Detection engineering: authoring and validating a custom Wazuh correlation rule
+- MITRE ATT&CK mapping of observed activity
+- Log-pipeline troubleshooting (syslog forwarding, rsyslog message-reduction)
+- Controlled attack simulation and analyst-style triage
+- Local-LLM integration for read-only, human-in-the-loop alert triage
+
+## Ethical Use
+
+All testing in this project was performed against isolated, self-owned lab
+infrastructure using temporary, lab-only accounts. No public systems, networks,
+or third-party accounts were targeted. The offensive tooling notes here exist to
+validate detection coverage, not to enable unauthorized access.
+
 ## Overview
 
 This project documents the design and implementation of a segmented virtual security lab using:
@@ -26,18 +44,17 @@ The lab simulates a small enterprise network with separate zones for management,
 
 ## Architecture
 
-```text
-                 Internet
-                     │
-                 Home Router
-                     │
-                  OPNsense
-      ┌──────────────┼───────────────┬───────────────┐
-      │              │               │               │
- MGMT (vmbr1)    SERVERS (vmbr2)  ATTACK (vmbr3)  SOC (vmbr4)
-10.10.0.0/24     10.10.10.0/24    10.10.30.0/24   10.10.40.0/24
-Ubuntu Desktop   Ubuntu Server    Kali Linux      Wazuh SOC
-VM 101           VM 200           VM 400          VM 300
+```mermaid
+flowchart TD
+    NET[Internet] --> RTR[Home Router]
+    RTR --> FW["OPNsense Firewall<br/>VM 100 · lab-fw-edge-01<br/>Suricata IDS/IPS"]
+    FW --> MGMT["MGMT · vmbr1<br/>10.10.0.0/24<br/>Mgmt Workstation · VM 101"]
+    FW --> SRV["SERVERS · vmbr2<br/>10.10.10.0/24<br/>Web Server · VM 200"]
+    FW --> ATK["ATTACK · vmbr3<br/>10.10.30.0/24<br/>Kali · VM 400"]
+    FW --> SOC["SOC · vmbr4<br/>10.10.40.0/24<br/>Wazuh · VM 300<br/>AI Triage · 10.10.40.20"]
+    ATK -. simulated attack .-> SRV
+    SRV -. agent logs .-> SOC
+    FW -. syslog 514 .-> SOC
 ```
 ## Virtual Machines
 
@@ -59,18 +76,19 @@ VM 101           VM 200           VM 400          VM 300
 - Nmap
 
 ## Detection Pipeline
-```text
-Kali attacker
-      ↓
-OPNsense firewall
-      ↓
-Suricata IDS/IPS
-      ↓
-Syslog forwarding
-      ↓
-Wazuh SIEM
-      ↓
-SOC dashboard alerts
+
+```mermaid
+flowchart LR
+    A[Kali attacker] --> B[OPNsense + Suricata]
+    B --> C[Syslog / Wazuh agent]
+    C --> D[Wazuh manager]
+    D --> E{Rule match?}
+    E -->|rule 100101| F["custom-ai-triage<br/>allowlisted fields only"]
+    E -->|routine| G[Dashboard telemetry]
+    F --> H["Local Ollama · qwen3:4b"]
+    H --> I[AI recommendations]
+    I --> J[Python renders trusted evidence]
+    J --> K[Human analyst review]
 ```
 ## Validated Detection Scenarios
 
@@ -128,6 +146,8 @@ The rule was validated with:
 - a negative-control test
 - live-telemetry troubleshooting after identifying rsyslog message compression
 
+The rule definition is in [`configs/wazuh-custom/local_rules.xml`](configs/wazuh-custom/local_rules.xml).
+
 ## Repository Structure
 - docs/ → design and implementation notes
 
@@ -151,10 +171,7 @@ The rule was validated with:
 
 - automated attack simulation
 
-## Author
-
-Trevor Henry Chiboora
-Cybersecurity Research Engineer## Local AI-Assisted SOC Triage
+## Local AI-Assisted SOC Triage
 
 After validating custom Wazuh rule `100101`, I added a local read-only
 AI-assisted triage workflow.
@@ -182,3 +199,10 @@ Validation included:
 - a routine-login negative-control test.
 
 [Read the AI SOC triage-agent documentation](ai-soc-agent/README.md)
+
+---
+
+## Author
+
+Trevor Henry Chiboora  
+Cybersecurity Research Engineer

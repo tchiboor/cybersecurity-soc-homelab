@@ -1,22 +1,24 @@
+# Disk images and large binaries
 *.iso
 *.qcow2
 *.vmdk
+
+# Logs and captures
 *.log
 *.pcap
 *.cap
+
+# Archives and backups
 *.zip
 *.tar.gz
 *.bak
 *.tmp
+
+# OS cruft
 .DS_Store
 Thumbs.db
-# Lab-only credentials and temporary wordlists
-password.txt
-passwords.txt
-*.wordlist
-*.secret
 
-# Temporary lab credentials and sensitive files
+# Lab-only credentials, wordlists, and secrets
 password.txt
 passwords.txt
 *.wordlist
@@ -24,10 +26,11 @@ passwords.txt
 *.key
 .env
 
-# AI SOC triage temporary files
+# AI SOC triage temporary / sensitive files
 custom-rule-passwords.txt
 hydra.restore
-rule-100101-full-alert.json
 *.restore
+rule-100101-full-alert.json
 __pycache__/
 *.pyc
+ai-soc-agent/reports/*.md

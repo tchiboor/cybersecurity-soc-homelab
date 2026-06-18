@@ -1,0 +1,35 @@
+<!--
+  Custom Wazuh detection rule (portfolio reference copy)
+
+  Rule 100101 detects a SUCCESSFUL SSH login that follows multiple FAILED
+  authentication attempts from the SAME source IP within a short time window.
+  This is the higher-risk "password guessing -> valid access" pattern that may
+  indicate account compromise.
+
+  >>> VERIFY BEFORE DEPLOYING <<<
+  This is a cleaned reference copy reconstructed to match the sample alert in
+  ai-soc-agent/sample-alerts/rule-100101-alert-redacted.json. Confirm the
+  parent rule IDs and the frequency/timeframe thresholds against your own
+  Wazuh ruleset before using it in production — base sshd rule IDs differ by
+  Wazuh version and decoder set (commonly: 5715 = auth success,
+  5710/5716/5760 = auth failure / invalid user). Validate with `wazuh-logtest`.
+
+  Maps to MITRE ATT&CK:
+    T1110.001  Brute Force: Password Guessing
+    T1078      Valid Accounts
+-->
+<group name="local,syslog,sshd,custom_detection,">
+
+  <rule id="100101" level="12" frequency="5" timeframe="120">
+    <if_sid>5715</if_sid>
+    <if_matched_group>authentication_failed</if_matched_group>
+    <same_source_ip />
+    <description>sshd: Successful login after multiple failed authentication attempts from the same source IP.</description>
+    <mitre>
+      <id>T1110.001</id>
+      <id>T1078</id>
+    </mitre>
+    <group>authentication_success,authentication_failed,credential_access,</group>
+  </rule>
+
+</group>

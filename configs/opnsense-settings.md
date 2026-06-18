@@ -1,7 +1,3 @@
-
-## `configs/opnsense-settings.md`
-
-```markdown
 # OPNsense Settings Reference
 
 ## Interfaces
@@ -15,6 +11,7 @@
 ## Firewall Rules
 
 Pass rules created for:
+
 - SERVERS net → any
 - ATTACK net → any
 - SOC net → any
@@ -22,6 +19,7 @@ Pass rules created for:
 ## Remote Logging
 
 Remote log target:
+
 - Host: 10.10.40.10
 - Port: 514
 - Transport: UDP

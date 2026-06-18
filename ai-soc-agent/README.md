@@ -46,37 +46,18 @@ generated.
 
 ## Architecture
 
-```text
-Kali attacker VM
-10.10.30.10
-        ↓
-Ubuntu target server
-web-server-01
-10.10.10.10
-        ↓
-Wazuh agent
-        ↓
-Wazuh manager
-10.10.40.10
-        ↓
-Custom Wazuh rule 100101
-        ↓
-Wazuh Integrator
-custom-ai-triage
-        ↓
-Allowlisted JSON fields only
-        ↓
-Local Ollama API
-lab-ai-triage-01
-10.10.40.20:11434
-        ↓
-qwen3:4b local model
-        ↓
-AI-generated investigation recommendations
-        ↓
-Python-rendered authoritative evidence
-        ↓
-Human analyst review
+```mermaid
+flowchart TD
+    A["Kali attacker VM<br/>10.10.30.10"] --> B["Ubuntu target · web-server-01<br/>10.10.10.10"]
+    B --> C[Wazuh agent]
+    C --> D["Wazuh manager<br/>10.10.40.10"]
+    D --> E[Custom Wazuh rule 100101]
+    E --> F["Wazuh Integrator<br/>custom-ai-triage"]
+    F --> G[Allowlisted JSON fields only]
+    G --> H["Local Ollama API · lab-ai-triage-01<br/>10.10.40.20:11434 · qwen3:4b"]
+    H --> I[AI-generated investigation recommendations]
+    I --> J[Python-rendered authoritative evidence]
+    J --> K[Human analyst review]
 ```
 
 ## Supported Detection Use Case
@@ -207,7 +188,7 @@ During iterative testing, report-generation latency improved from approximately
 ai-soc-agent/
 ├── README.md
 ├── agent/
-│   └── offline_triage.py
+│   └── live_triage.py
 ├── integration/
 │   └── custom-ai-triage
 ├── playbooks/
