@@ -83,7 +83,7 @@ The custom detection maps to:
 
 The workflow has two layers.
 
-### 1. Deterministic Evidence Rendering
+### 1. Deterministic Evidence
 
 Python extracts and renders authoritative alert facts directly from the
 sanitized Wazuh JSON alert.

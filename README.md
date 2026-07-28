@@ -148,6 +148,19 @@ The rule was validated with:
 
 The rule definition is in [`configs/wazuh-custom/local_rules.xml`](configs/wazuh-custom/local_rules.xml).
 
+## Detection Engineering Progression
+
+This lab demonstrates a layered detection workflow using network, endpoint, and SIEM telemetry.
+
+| Stage | Detection | Purpose |
+|---|---|---|
+| Baseline SSH activity | Linux authentication logs | Verify normal SSH login and failed-login visibility |
+| Built-in Wazuh detection | Rule `5551` | Detect repeated SSH/PAM authentication failures |
+| Custom detection engineering | Rule `100101` | Detect a successful SSH login after multiple failed attempts from the same source IP |
+| AI-assisted triage | Local AI SOC agent | Generate a read-only analyst triage report for the high-risk custom alert |
+
+The AI component does not automatically block IPs, disable users, or make containment decisions. It produces a structured advisory report for human analyst review.
+
 ## Repository Structure
 - docs/ → design and implementation notes
 
@@ -197,6 +210,20 @@ Validation included:
 - a manual Wazuh-to-AI integration test;
 - a live automatic AI-report test;
 - a routine-login negative-control test.
+
+## AI SOC Agent Validation
+
+The AI SOC agent includes an offline validation path so the workflow can be tested without a live Wazuh or Ollama deployment.
+
+Validation includes:
+
+- redacted Wazuh sample alert parsing
+- pytest-based unit tests
+- JSON validation for sample alerts
+- dry-run Markdown triage report generation
+- GitHub Actions CI
+
+This makes the triage workflow reproducible from a clean clone of the repository.
 
 [Read the AI SOC triage-agent documentation](ai-soc-agent/README.md)
 
