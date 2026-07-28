@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import argparse
 import json
 import sys
@@ -10,8 +11,15 @@ from pathlib import Path
 from typing import Any
 from urllib import error, request
 
-OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
-OLLAMA_MODEL = "qwen3:4b"
+OLLAMA_URL = os.getenv(
+    "OLLAMA_URL",
+    "http://10.10.40.20:11434/api/chat",
+)
+
+OLLAMA_MODEL = os.getenv(
+    "OLLAMA_MODEL",
+    "qwen3:4b",
+)
 
 AI_SCHEMA: dict[str, Any] = {
     "type": "object",
