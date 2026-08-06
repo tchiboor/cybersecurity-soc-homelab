@@ -33,4 +33,9 @@ hydra.restore
 rule-100101-full-alert.json
 __pycache__/
 *.pyc
-ai-soc-agent/reports/*.md
+ai-soc-agent/reports/
+.pytest_cache/
+.venv/
+*.tfstate*
+.terraform/
+*.tfvars
