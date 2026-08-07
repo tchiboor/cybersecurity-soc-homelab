@@ -114,3 +114,26 @@ The prompt instructs the model to:
 - avoid executing commands;
 - avoid claiming confirmed compromise without sufficient evidence;
 - avoid autonomous containment recommendations.
+
+## Deterministic Injection Detection and Output Escaping
+
+Prompt-safety instructions to the model are necessary but not sufficient,
+because the model itself is not a trustworthy enforcement point. Two
+additional controls are therefore implemented in Python:
+
+1. **Marker detection.** Allowlisted free-text fields (target username,
+   rule description) are scanned for known prompt-injection phrasings.
+   A match is surfaced in the report as
+   `Prompt injection marker detected: true` with guidance to treat the
+   field as untrusted data. Detection is deterministic and cannot be
+   influenced by the model.
+2. **Rendering safety.** Untrusted values are escaped (backticks),
+   flattened (newlines removed), and truncated before being placed inside
+   report Markdown, limiting formatting-based manipulation of the analyst
+   view.
+
+Both controls are enforced by regression tests
+(`tests/test_prompt_injection.py`) and run in CI on every commit. Marker
+detection is a tripwire, not a guarantee: novel phrasings will not match,
+which is why severity, event type, and evidence remain Python-owned
+regardless of detection outcome.

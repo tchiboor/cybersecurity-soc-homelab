@@ -3,9 +3,9 @@
 
 from __future__ import annotations
 
-import os
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -155,7 +155,7 @@ def validate_ai_analysis(ai_analysis: dict[str, Any]) -> None:
     recommendations = ai_analysis.get("recommended_next_steps")
 
     if not isinstance(recommendations, list):
-        raise RuntimeError(
+        raise TypeError(
             "AI response is missing a recommendation list."
         )
 
@@ -166,7 +166,7 @@ def validate_ai_analysis(ai_analysis: dict[str, Any]) -> None:
 
     for item in recommendations:
         if not isinstance(item, str):
-            raise RuntimeError(
+            raise TypeError(
                 "AI recommendation list contains a non-string value."
             )
 

@@ -197,6 +197,9 @@ Validation included:
 - a manual Wazuh-to-AI integration test;
 - a live automatic AI-report test;
 - a routine-login negative-control test.
+- an automated pytest suite run in CI on every commit;
+- an adversarial prompt-injection test with deterministic detection and
+  regression coverage.
 
 [Read the AI SOC triage-agent documentation](ai-soc-agent/README.md)
 

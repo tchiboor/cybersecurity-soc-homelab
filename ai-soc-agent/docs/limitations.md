@@ -23,6 +23,11 @@ Repeated failed SSH authentication attempts
 - The initial deployment uses a small local model.
 - CPU-based inference can introduce report-generation latency.
 - Additional detection templates are required for new alert categories.
+- Prompt-injection marker detection is keyword-based: novel or obfuscated
+  phrasings will not match, and generic markers (for example,
+  "system prompt") could occasionally flag benign text. The primary
+  defense remains the architecture: the model has no authority over
+  evidence, severity, or verdicts.
 
 ## Future Enhancements
 

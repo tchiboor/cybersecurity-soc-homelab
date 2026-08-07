@@ -179,9 +179,9 @@ def query_model(sanitized: dict, event_type: str) -> dict | None:
         content = body.get("message", {}).get("content", "")
         parsed = json.loads(content)
         if not isinstance(parsed.get("recommendations"), list):
-            raise ValueError("model output missing 'recommendations' list")
+            raise TypeError("model output missing 'recommendations' list")
         return parsed
-    except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
+    except (urllib.error.URLError, TimeoutError, ValueError, TypeError, json.JSONDecodeError) as exc:
         log.error("Model query failed (fail-safe engaged): %s", exc)
         return None
 

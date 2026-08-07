@@ -37,3 +37,9 @@ jobs:
             --alert sample-alerts/rule-100101-alert-redacted.json \
             --output-dir ./reports \
             --dry-run
+        
+      - name: Install test dependencies
+        run: pip install pytest ruff
+
+      - name: Lint
+        run: ruff check agent/ tests/
