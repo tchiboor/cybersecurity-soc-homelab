@@ -80,6 +80,9 @@ def test_injection_does_not_downgrade_rule_100101():
     sanitized = live_triage.sanitize_alert(alert)
 
     assert live_triage.determine_event_type(sanitized) == "ssh_success_after_failures"
-    assert live_triage.determine_severity(
-        live_triage.nested_get(sanitized, "rule", "level")
-    ) == "High"
+    assert (
+        live_triage.determine_severity(
+            live_triage.nested_get(sanitized, "rule", "level")
+        )
+        == "High"
+    )

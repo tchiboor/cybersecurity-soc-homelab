@@ -61,6 +61,7 @@ log = logging.getLogger("ai-triage")
 # Step 1: sanitize — extract allowlisted fields from raw Wazuh JSON
 # ---------------------------------------------------------------------------
 
+
 def sanitize_alert(raw: dict) -> dict:
     """Map a raw Wazuh alert to the minimal allowlisted schema.
 
@@ -98,6 +99,7 @@ def classify(sanitized: dict) -> tuple[str, str]:
 # Step 2: deterministic evidence rendering (Python-owned, model cannot touch)
 # ---------------------------------------------------------------------------
 
+
 def render_evidence(sanitized: dict, event_type: str, severity: str) -> str:
     mitre = ", ".join(sanitized["mitre_ids"]) if sanitized["mitre_ids"] else "n/a"
     return f"""## Authoritative Evidence (rendered by Python, not the model)
@@ -106,15 +108,15 @@ def render_evidence(sanitized: dict, event_type: str, severity: str) -> str:
 |---|---|
 | Event type | `{event_type}` |
 | Severity | `{severity}` |
-| Timestamp | `{sanitized['timestamp']}` |
-| Wazuh rule ID | `{sanitized['rule_id']}` |
-| Alert level | `{sanitized['rule_level']}` |
-| Description | {sanitized['rule_description']} |
-| Correlation threshold | `{sanitized['frequency']}` |
+| Timestamp | `{sanitized["timestamp"]}` |
+| Wazuh rule ID | `{sanitized["rule_id"]}` |
+| Alert level | `{sanitized["rule_level"]}` |
+| Description | {sanitized["rule_description"]} |
+| Correlation threshold | `{sanitized["frequency"]}` |
 | MITRE ATT&CK | `{mitre}` |
-| Endpoint | `{sanitized['agent_name']}` |
-| Source IP | `{sanitized['src_ip']}` |
-| Target account | `{sanitized['dst_user']}` |
+| Endpoint | `{sanitized["agent_name"]}` |
+| Source IP | `{sanitized["src_ip"]}` |
+| Target account | `{sanitized["dst_user"]}` |
 """
 
 
@@ -181,7 +183,13 @@ def query_model(sanitized: dict, event_type: str) -> dict | None:
         if not isinstance(parsed.get("recommendations"), list):
             raise TypeError("model output missing 'recommendations' list")
         return parsed
-    except (urllib.error.URLError, TimeoutError, ValueError, TypeError, json.JSONDecodeError) as exc:
+    except (
+        urllib.error.URLError,
+        TimeoutError,
+        ValueError,
+        TypeError,
+        json.JSONDecodeError,
+    ) as exc:
         log.error("Model query failed (fail-safe engaged): %s", exc)
         return None
 
@@ -208,6 +216,7 @@ def render_recommendations(ai_output: dict | None) -> str:
 # ---------------------------------------------------------------------------
 # Step 4: assemble and write the report
 # ---------------------------------------------------------------------------
+
 
 def build_report(sanitized: dict, ai_output: dict | None) -> str:
     event_type, severity = classify(sanitized)
@@ -244,8 +253,11 @@ def main() -> int:
     out_path = out_dir / f"triage-{sanitized['rule_id']}-{stamp}.md"
     out_path.write_text(report)
 
-    log.info("SUCCESS: AI triage report generated for rule %s -> %s",
-             sanitized["rule_id"], out_path)
+    log.info(
+        "SUCCESS: AI triage report generated for rule %s -> %s",
+        sanitized["rule_id"],
+        out_path,
+    )
     print(report)
     return 0
 

@@ -92,6 +92,7 @@ def nested_get(
 
     return current
 
+
 def markdown_inline(value: Any, max_len: int = 200) -> str:
     """Render untrusted alert values safely inside inline Markdown."""
     if value is None:
@@ -114,6 +115,7 @@ def detect_prompt_injection(alert: dict[str, Any]) -> bool:
 
     return any(marker in blob for marker in PROMPT_INJECTION_MARKERS)
 
+
 def sanitize_recommendations(
     recommendations: list[str],
     injection_detected: bool,
@@ -125,10 +127,7 @@ def sanitize_recommendations(
         text = markdown_inline(item, max_len=240)
         lowered = text.lower()
 
-        if any(
-            marker in lowered
-            for marker in FORBIDDEN_AI_RECOMMENDATION_MARKERS
-        ):
+        if any(marker in lowered for marker in FORBIDDEN_AI_RECOMMENDATION_MARKERS):
             continue
 
         cleaned.append(text)
@@ -225,20 +224,14 @@ def validate_ai_analysis(ai_analysis: dict[str, Any]) -> None:
     recommendations = ai_analysis.get("recommended_next_steps")
 
     if not isinstance(recommendations, list):
-        raise TypeError(
-            "AI response is missing a recommendation list."
-        )
+        raise TypeError("AI response is missing a recommendation list.")
 
     if not recommendations:
-        raise RuntimeError(
-            "AI response returned an empty recommendation list."
-        )
+        raise RuntimeError("AI response returned an empty recommendation list.")
 
     for item in recommendations:
         if not isinstance(item, str):
-            raise TypeError(
-                "AI recommendation list contains a non-string value."
-            )
+            raise TypeError("AI recommendation list contains a non-string value.")
 
 
 def query_ollama(
@@ -323,34 +316,24 @@ Python will render all authoritative facts separately.
 
     try:
         with request.urlopen(req, timeout=300) as response:
-            body = json.loads(
-                response.read().decode("utf-8")
-            )
+            body = json.loads(response.read().decode("utf-8"))
 
     except error.URLError as exc:
-        raise RuntimeError(
-            f"Unable to reach Ollama API: {exc}"
-        ) from exc
+        raise RuntimeError(f"Unable to reach Ollama API: {exc}") from exc
 
     except json.JSONDecodeError as exc:
-        raise RuntimeError(
-            f"Ollama returned invalid API JSON: {exc}"
-        ) from exc
+        raise RuntimeError(f"Ollama returned invalid API JSON: {exc}") from exc
 
     content = body.get("message", {}).get("content")
 
     if not content:
-        raise RuntimeError(
-            "Ollama returned an empty response."
-        )
+        raise RuntimeError("Ollama returned an empty response.")
 
     try:
         ai_analysis = json.loads(content)
 
     except json.JSONDecodeError as exc:
-        raise RuntimeError(
-            "Ollama did not return valid structured JSON."
-        ) from exc
+        raise RuntimeError("Ollama did not return valid structured JSON.") from exc
 
     validate_ai_analysis(ai_analysis)
 
@@ -367,6 +350,7 @@ def render_recommendations(recommendations: list[str]) -> str:
         )
     )
 
+
 def render_high_risk_report(
     alert: dict[str, Any],
     recommendations: list[str],
@@ -374,9 +358,7 @@ def render_high_risk_report(
     """Render a deterministic report for rule 100101."""
     raw_rule_level = nested_get(alert, "rule", "level", default="unknown")
 
-    rule_id = markdown_inline(
-        nested_get(alert, "rule", "id", default="unknown")
-    )
+    rule_id = markdown_inline(nested_get(alert, "rule", "id", default="unknown"))
     rule_level = markdown_inline(raw_rule_level)
     description = markdown_inline(
         nested_get(alert, "rule", "description", default="unknown")
@@ -387,23 +369,15 @@ def render_high_risk_report(
 
     mitre = nested_get(alert, "rule", "mitre", default={}) or {}
 
-    agent_name = markdown_inline(
-        nested_get(alert, "agent", "name", default="unknown")
-    )
-    srcip = markdown_inline(
-        nested_get(alert, "data", "srcip", default="unknown")
-    )
-    dstuser = markdown_inline(
-        nested_get(alert, "data", "dstuser", default="unknown")
-    )
+    agent_name = markdown_inline(nested_get(alert, "agent", "name", default="unknown"))
+    srcip = markdown_inline(nested_get(alert, "data", "srcip", default="unknown"))
+    dstuser = markdown_inline(nested_get(alert, "data", "dstuser", default="unknown"))
 
-    mitre_ids = ", ".join(
-        str(item) for item in mitre.get("id", [])
-    ) or "Not provided"
+    mitre_ids = ", ".join(str(item) for item in mitre.get("id", [])) or "Not provided"
 
-    mitre_techniques = ", ".join(
-        str(item) for item in mitre.get("technique", [])
-    ) or "Not provided"
+    mitre_techniques = (
+        ", ".join(str(item) for item in mitre.get("technique", [])) or "Not provided"
+    )
 
     severity = determine_severity(raw_rule_level)
     next_steps = render_recommendations(recommendations)
@@ -463,6 +437,7 @@ Yes. A human analyst must review and approve containment actions.
 - Additional SSH-session telemetry should be reviewed.
 - The report does not perform autonomous containment.
 """
+
 
 def render_routine_login_report(
     alert: dict[str, Any],
@@ -595,7 +570,7 @@ def render_markdown(
     recommendations = sanitize_recommendations(
         ai_analysis["recommended_next_steps"],
         injection_detected,
-)
+    )
 
     if event_type == "ssh_success_after_failures":
         return render_high_risk_report(
@@ -618,9 +593,7 @@ def render_markdown(
 def main() -> int:
     """Run the offline triage workflow."""
     parser = argparse.ArgumentParser(
-        description=(
-            "Generate a read-only AI-assisted SOC triage report."
-        ),
+        description=("Generate a read-only AI-assisted SOC triage report."),
     )
 
     parser.add_argument(

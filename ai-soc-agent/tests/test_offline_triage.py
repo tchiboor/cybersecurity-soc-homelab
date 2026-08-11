@@ -52,7 +52,7 @@ def test_offline_triage_dry_run_generates_report(tmp_path):
         text=True,
         capture_output=True,
         timeout=30,
-         check=False,
+        check=False,
     )
 
     assert result.returncode == 0, result.stderr
