@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-08-11T02:14:56Z",
+  "rule": {
+    "id": "100204",
+    "level": 13,
+    "description": "Suspicious outbound connection: prod-server-01 sent 245KB to 198.51.100.77:4444 over TCP at 02:14 UTC",
+    "frequency": 1,
+    "groups": ["firewall", "egress", "possible_c2"],
+    "mitre": {
+      "id": ["T1071", "T1105"],
+      "technique": ["Application Layer Protocol", "Ingress Tool Transfer"]
+    }
+  },
+  "agent": {
+    "name": "opnsense-firewall"
+  },
+  "data": {
+    "srcip": "192.168.1.10",
+    "dstuser": "n/a"
+  }
+}

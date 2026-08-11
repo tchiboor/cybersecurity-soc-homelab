@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-08-11T09:15:22Z",
+  "rule": {
+    "id": "100201",
+    "level": 8,
+    "description": "sudo: 3 incorrect password attempts by jdoe on prod-server-01 within 60 seconds; attempted USER=root COMMAND=/bin/bash",
+    "frequency": 3,
+    "groups": ["sudo", "authentication_failed", "privilege_escalation"],
+    "mitre": {
+      "id": ["T1548.003"],
+      "technique": ["Sudo and Sudo Caching"]
+    }
+  },
+  "agent": {
+    "name": "prod-server-01"
+  },
+  "data": {
+    "srcip": "192.168.1.45",
+    "dstuser": "jdoe"
+  }
+}
