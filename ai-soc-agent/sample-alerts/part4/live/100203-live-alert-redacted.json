@@ -1,0 +1,57 @@
+{
+  "timestamp": "2026-08-21T06:24:32.019+0000",
+  "rule": {
+    "level": 12,
+    "description": "auditd: new user account created on the system.",
+    "id": "100203",
+    "mitre": {
+      "id": [
+        "T1136.001",
+        "T1098"
+      ],
+      "tactic": [
+        "Persistence"
+      ],
+      "technique": [
+        "Local Account",
+        "Account Manipulation"
+      ]
+    },
+    "firedtimes": 1,
+    "mail": true,
+    "groups": [
+      "local",
+      "custom_detection",
+      "part4",
+      "account_change",
+      "privilege_change"
+    ]
+  },
+  "agent": {
+    "id": "001",
+    "name": "web-server-01",
+    "ip": "10.10.10.10"
+  },
+  "manager": {
+    "name": "lab-soc-monitor-01"
+  },
+  "id": "1787293472.273232",
+  "full_log": "Aug 21 06:24:31 lab-srv-web-01 useradd[515520]: new user: name=tempuser99, UID=1002, GID=1002, home=/home/tempuser99, shell=/bin/sh, from=/dev/pts/0",
+  "predecoder": {
+    "program_name": "useradd",
+    "timestamp": "Aug 21 06:24:31",
+    "hostname": "lab-srv-web-01"
+  },
+  "decoder": {
+    "parent": "useradd",
+    "name": "useradd"
+  },
+  "data": {
+    "dstuser": "tempuser99",
+    "uid": "1002",
+    "gid": "1002",
+    "home": "/home/tempuser99",
+    "shell": "/bin/sh,"
+  },
+  "location": "/var/log/auth.log"
+}
