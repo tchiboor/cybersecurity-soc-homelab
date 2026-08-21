@@ -1,6 +1,6 @@
 # Incident Summary
 
-A new account `tempuser99` was created on `web-server-01` and added to privileged groups; source IP `unknown`.
+A new local account `tempuser99` was created on `web-server-01`; source IP `unknown`.
 
 ## Severity
 
@@ -21,14 +21,14 @@ A new account `tempuser99` was created on `web-server-01` and added to privilege
 
 ## Analyst Interpretation
 
-Creation of a new account with privileged group membership is a common persistence and privilege-escalation technique. Verify the change against an approved change request and confirm the creating actor was authorized.
+Creation of a new local account can indicate persistence when it is not tied to an approved administrative change. Verify the change against an approved request and confirm the creating actor was authorized.
 
 ## Recommended Next Steps
 
 1. Verify the creation context of the new user account 'tempuser99' on web-server-01
 2. Check for recent authentication attempts associated with this account
-3. Review system logs for any unusual activity by this account post-creation
-4. Cross-reference with known privileged user groups to assess risk level
+3. Review system logs for any unusual activity by this user account
+4. Cross-reference with other Wazuh alerts for similar patterns on the same host
 
 ## Human Approval Required
 

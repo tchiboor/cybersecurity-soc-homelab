@@ -106,7 +106,7 @@ def test_part4_rules_do_not_fall_through_to_generic_report():
     expectations = {
         "100201": "sudo",
         "100202": "scan-like",
-        "100203": "new account",
+        "100203": "new local account",
         "100204": "outbound",
         "100205": "web authentication",
     }
