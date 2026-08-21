@@ -73,7 +73,6 @@
   <!-- destination port field your firewall decoder populates (dstport).     -->
   <rule id="100204" level="13">
     <if_group>firewall</if_group>
-    <field name="action">pass</field>
     <match>4444</match>
     <description>Firewall: outbound connection to a suspicious destination port (possible C2 / data transfer).</description>
     <mitre>
