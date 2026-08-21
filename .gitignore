@@ -39,3 +39,6 @@ ai-soc-agent/reports/
 *.tfstate*
 .terraform/
 *.tfvars
+
+# Local draft fixtures
+ai-soc-agent/sample-alerts/part4/drafts/

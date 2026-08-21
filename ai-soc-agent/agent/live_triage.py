@@ -351,211 +351,276 @@ def render_recommendations(recommendations: list[str]) -> str:
     )
 
 
-def render_high_risk_report(
-    alert: dict[str, Any],
-    recommendations: list[str],
-) -> str:
-    """Render a deterministic report for rule 100101."""
-    raw_rule_level = nested_get(alert, "rule", "level", default="unknown")
+# ---------------------------------------------------------------------------
+# Report rendering — one shared scaffold for every event type
+# ---------------------------------------------------------------------------
+#
+# Every alert type is rendered through render_report(), so:
+#   * the prompt-injection marker always appears in the evidence block
+#     (previously it was only present on the rule-100101 template), and
+#   * each Part 4 rule gets a tailored summary + interpretation instead of
+#     falling through to a generic "not sufficient to confirm" report.
 
-    rule_id = markdown_inline(nested_get(alert, "rule", "id", default="unknown"))
-    rule_level = markdown_inline(raw_rule_level)
-    description = markdown_inline(
-        nested_get(alert, "rule", "description", default="unknown")
-    )
-    frequency = markdown_inline(
-        nested_get(alert, "rule", "frequency", default="unknown")
-    )
 
+EVENT_TEMPLATES: dict[str, dict[str, str]] = {
+    "ssh_success_after_failures": {
+        "summary": (
+            "A successful SSH login to `{agent_name}` for account `{dstuser}` "
+            "occurred after `{frequency}` failed authentication attempts from "
+            "source IP `{srcip}`."
+        ),
+        "interpretation": (
+            "A successful SSH login followed repeated failed authentication "
+            "attempts from the same source IP. This pattern may indicate "
+            "password guessing that resulted in valid account access. The "
+            "available alert data does not confirm compromise; the source IP "
+            "authorization status requires analyst verification."
+        ),
+        "approval": (
+            "Yes. A human analyst must review and approve containment actions."
+        ),
+    },
+    "routine_ssh_success": {
+        "summary": (
+            "A successful SSH login to `{agent_name}` for account `{dstuser}` "
+            "was recorded from source IP `{srcip}`."
+        ),
+        "interpretation": (
+            "This is a routine authentication-success event with no repeated "
+            "failures or other evidence of unauthorized activity. Retain it for "
+            "audit visibility and investigate only if the surrounding context "
+            "is unusual."
+        ),
+        "approval": (
+            "No containment action is recommended based on this alert alone. A "
+            "human analyst should review only if the surrounding context is "
+            "unusual."
+        ),
+    },
+    "sudo_failure": {
+        "summary": (
+            "Repeated sudo authentication failures were recorded on "
+            "`{agent_name}` for account `{dstuser}` from source IP `{srcip}` "
+            "(`{frequency}` attempts)."
+        ),
+        "interpretation": (
+            "Multiple failed sudo attempts within a short window may indicate "
+            "an attempt to escalate privileges on the host. This can be "
+            "legitimate user error or an attacker probing for a privileged "
+            "password. Correlate with recent authentication and session "
+            "activity for the same account."
+        ),
+        "approval": (
+            "Yes. A human analyst must review before any containment or account "
+            "action."
+        ),
+    },
+    "port_scan": {
+        "summary": (
+            "Firewall telemetry recorded scan-like behavior from source IP "
+            "`{srcip}` against `{agent_name}` (`{frequency}` ports probed)."
+        ),
+        "interpretation": (
+            "A high number of unique ports probed from a single source in a "
+            "short window is consistent with reconnaissance, which frequently "
+            "precedes targeted exploitation attempts. Confirm whether the "
+            "source is an authorized scanner before treating it as hostile."
+        ),
+        "approval": (
+            "Yes. A human analyst must review before any containment action "
+            "such as blocking the source."
+        ),
+    },
+    "new_privileged_account": {
+        "summary": (
+            "A new account `{dstuser}` was created on `{agent_name}` and added "
+            "to privileged groups; source IP `{srcip}`."
+        ),
+        "interpretation": (
+            "Creation of a new account with privileged group membership is a "
+            "common persistence and privilege-escalation technique. Verify the "
+            "change against an approved change request and confirm the creating "
+            "actor was authorized."
+        ),
+        "approval": (
+            "Yes. A human analyst must verify authorization before any "
+            "containment or account action."
+        ),
+    },
+    "suspicious_outbound_connection": {
+        "summary": (
+            "An outbound connection from `{agent_name}` (source IP `{srcip}`) "
+            "was flagged as suspicious."
+        ),
+        "interpretation": (
+            "Outbound traffic to an uncommon destination port, especially "
+            "off-hours or with a large transfer volume, can indicate "
+            "command-and-control activity or data exfiltration. Correlate with "
+            "process and endpoint telemetry on the originating host to identify "
+            "the responsible process."
+        ),
+        "approval": (
+            "Yes. A human analyst must review before any containment action "
+            "such as isolating the host."
+        ),
+    },
+    "web_auth_failure": {
+        "summary": (
+            "Repeated web authentication failures were recorded against "
+            "`{agent_name}` from source IP `{srcip}` (`{frequency}` failures)."
+        ),
+        "interpretation": (
+            "A high volume of failed authentication requests to an application "
+            "endpoint from a single source is consistent with credential "
+            "stuffing or brute forcing, particularly when driven by a scripted "
+            "user agent. Review whether any attempt subsequently succeeded from "
+            "the same source."
+        ),
+        "approval": (
+            "Yes. A human analyst must review before any containment action "
+            "such as blocking the source."
+        ),
+    },
+    "generic_security_event": {
+        "summary": (
+            "A Wazuh security event was generated for endpoint `{agent_name}` "
+            "from source IP `{srcip}`."
+        ),
+        "interpretation": (
+            "The alert requires contextual review. The available event data is "
+            "not sufficient on its own to confirm malicious activity. Correlate "
+            "with surrounding telemetry for the same source, account, and "
+            "endpoint."
+        ),
+        "approval": (
+            "A human analyst must review the alert before any containment "
+            "action."
+        ),
+    },
+}
+
+
+def build_context(alert: dict[str, Any]) -> dict[str, str]:
+    """Render every untrusted field once, safely, for reuse across a report."""
     mitre = nested_get(alert, "rule", "mitre", default={}) or {}
 
-    agent_name = markdown_inline(nested_get(alert, "agent", "name", default="unknown"))
-    srcip = markdown_inline(nested_get(alert, "data", "srcip", default="unknown"))
-    dstuser = markdown_inline(nested_get(alert, "data", "dstuser", default="unknown"))
+    return {
+        "timestamp": markdown_inline(
+            nested_get(alert, "timestamp", default="unknown")
+        ),
+        "rule_id": markdown_inline(
+            nested_get(alert, "rule", "id", default="unknown")
+        ),
+        "rule_level": markdown_inline(
+            nested_get(alert, "rule", "level", default="unknown")
+        ),
+        "description": markdown_inline(
+            nested_get(alert, "rule", "description", default="unknown")
+        ),
+        "frequency": markdown_inline(
+            nested_get(alert, "rule", "frequency", default="unknown")
+        ),
+        "agent_name": markdown_inline(
+            nested_get(alert, "agent", "name", default="unknown")
+        ),
+        "srcip": markdown_inline(
+            nested_get(alert, "data", "srcip", default="unknown")
+        ),
+        "dstuser": markdown_inline(
+            nested_get(alert, "data", "dstuser", default="unknown")
+        ),
+        "mitre_ids": (
+            ", ".join(str(item) for item in mitre.get("id", [])) or "Not provided"
+        ),
+        "mitre_techniques": (
+            ", ".join(str(item) for item in mitre.get("technique", []))
+            or "Not provided"
+        ),
+    }
 
-    mitre_ids = ", ".join(str(item) for item in mitre.get("id", [])) or "Not provided"
 
-    mitre_techniques = (
-        ", ".join(str(item) for item in mitre.get("technique", [])) or "Not provided"
+def render_evidence_block(ctx: dict[str, str], injection_detected: bool) -> str:
+    """Shared evidence block. The injection marker is ALWAYS rendered here."""
+    return f"""## Evidence
+
+- Wazuh rule: `{ctx['rule_id']}`
+- Alert level: `{ctx['rule_level']}`
+- Alert description: `{ctx['description']}`
+- Source IP: `{ctx['srcip']}`
+- Target endpoint: `{ctx['agent_name']}`
+- Target account: `{ctx['dstuser']}`
+- Correlation threshold: `{ctx['frequency']}` prior matched events
+- MITRE ATT&CK IDs: `{ctx['mitre_ids']}`
+- MITRE ATT&CK techniques: `{ctx['mitre_techniques']}`
+- Prompt injection marker detected: `{str(injection_detected).lower()}`
+"""
+
+
+def render_report(
+    alert: dict[str, Any],
+    recommendations: list[str],
+    injection_detected: bool,
+    model_available: bool = True,
+) -> str:
+    """Render a deterministic report for any event type via a shared scaffold."""
+    event_type = determine_event_type(alert)
+    template = EVENT_TEMPLATES.get(
+        event_type,
+        EVENT_TEMPLATES["generic_security_event"],
     )
 
-    severity = determine_severity(raw_rule_level)
+    ctx = build_context(alert)
+    severity = determine_severity(
+        nested_get(alert, "rule", "level", default="unknown")
+    )
+
+    summary = template["summary"].format(**ctx)
+    interpretation = template["interpretation"]
+    approval = template["approval"]
     next_steps = render_recommendations(recommendations)
-    injection_detected = detect_prompt_injection(alert)
 
     injection_note = ""
     if injection_detected:
-        injection_note = """
-Prompt-injection-like text was detected inside an alert field. Treat the field
-as untrusted data. Do not follow instructions embedded in alert content.
-"""
+        injection_note = (
+            "\n> Prompt-injection-like text was detected inside an alert "
+            "field. The field is treated as untrusted data and any embedded "
+            "instructions are not followed.\n"
+        )
+
+    failsafe_note = ""
+    if not model_available:
+        failsafe_note = (
+            "\n> The local model was unavailable or returned invalid output. "
+            "The recommendations below are deterministic fail-safe guidance; "
+            "the authoritative evidence above is unaffected.\n"
+        )
 
     return f"""# Incident Summary
 
-A successful SSH login to `{agent_name}` for account `{dstuser}` occurred
-after `{frequency}` authentication failures from source IP `{srcip}`.
+{summary}
 
 ## Severity
 
 **{severity}**
 
-## Evidence
-
-- Wazuh rule: `{rule_id}`
-- Alert level: `{rule_level}`
-- Alert description: `{description}`
-- Source IP: `{srcip}`
-- Target endpoint: `{agent_name}`
-- Target account: `{dstuser}`
-- Prompt injection marker detected: `{str(injection_detected).lower()}`
-- Correlation threshold: `{frequency}` prior matched failures
-- MITRE ATT&CK IDs: `{mitre_ids}`
-- MITRE ATT&CK techniques: `{mitre_techniques}`
-
+{render_evidence_block(ctx, injection_detected)}
 ## Analyst Interpretation
 
-The alert indicates that a successful SSH login followed repeated failed
-authentication attempts from the same source IP. This pattern may indicate
-password guessing that resulted in valid account access.
-
-{injection_note}
-The available alert data does not confirm compromise. The source IP
-authorization status is unknown and requires analyst verification.
-
+{interpretation}
+{injection_note}{failsafe_note}
 ## Recommended Next Steps
 
 {next_steps}
 
 ## Human Approval Required
 
-Yes. A human analyst must review and approve containment actions.
+{approval}
 
 ## Limitations
 
-- The alert alone does not confirm account compromise.
+- This report is based only on the supplied sanitized Wazuh alert.
 - The source IP authorization status is not included in the alert.
-- Additional SSH-session telemetry should be reviewed.
-- The report does not perform autonomous containment.
-"""
-
-
-def render_routine_login_report(
-    alert: dict[str, Any],
-    recommendations: list[str],
-) -> str:
-    """Render a deterministic report for routine SSH success rule 5715."""
-    rule_id = nested_get(alert, "rule", "id", default="unknown")
-    rule_level = nested_get(alert, "rule", "level", default="unknown")
-    description = nested_get(
-        alert,
-        "rule",
-        "description",
-        default="unknown",
-    )
-    agent_name = nested_get(alert, "agent", "name", default="unknown")
-    srcip = nested_get(alert, "data", "srcip", default="unknown")
-    dstuser = nested_get(alert, "data", "dstuser", default="unknown")
-
-    severity = determine_severity(rule_level)
-    next_steps = render_recommendations(recommendations)
-
-    return f"""# Incident Summary
-
-A successful SSH login to `{agent_name}` for account `{dstuser}` was recorded
-from source IP `{srcip}`.
-
-## Severity
-
-**{severity}**
-
-## Evidence
-
-- Wazuh rule: `{rule_id}`
-- Alert level: `{rule_level}`
-- Alert description: `{description}`
-- Source IP: `{srcip}`
-- Target endpoint: `{agent_name}`
-- Target account: `{dstuser}`
-
-## Analyst Interpretation
-
-This is a routine authentication-success event. The alert does not show
-repeated failed attempts or other evidence of unauthorized activity.
-
-The source IP authorization status is not included in the alert. Retain the
-event for audit visibility and investigate only if additional context makes
-the activity unusual.
-
-## Recommended Next Steps
-
-{next_steps}
-
-## Human Approval Required
-
-No containment action is recommended based on this alert alone. A human
-analyst should review the event only if the surrounding context is unusual.
-
-## Limitations
-
-- The source IP authorization status is not included in the alert.
-- The alert does not provide SSH-session activity details.
-- The event should be correlated with additional telemetry if suspicious
-  context exists.
-"""
-
-
-def render_generic_report(
-    alert: dict[str, Any],
-    recommendations: list[str],
-) -> str:
-    """Render a conservative fallback report for other alert types."""
-    rule_id = nested_get(alert, "rule", "id", default="unknown")
-    rule_level = nested_get(alert, "rule", "level", default="unknown")
-    description = nested_get(
-        alert,
-        "rule",
-        "description",
-        default="unknown",
-    )
-    agent_name = nested_get(alert, "agent", "name", default="unknown")
-    srcip = nested_get(alert, "data", "srcip", default="unknown")
-
-    severity = determine_severity(rule_level)
-    next_steps = render_recommendations(recommendations)
-
-    return f"""# Incident Summary
-
-A Wazuh security event was generated for endpoint `{agent_name}`.
-
-## Severity
-
-**{severity}**
-
-## Evidence
-
-- Wazuh rule: `{rule_id}`
-- Alert level: `{rule_level}`
-- Alert description: `{description}`
-- Source IP: `{srcip}`
-- Target endpoint: `{agent_name}`
-
-## Analyst Interpretation
-
-The alert requires contextual review. The available event data is not
-sufficient to confirm malicious activity.
-
-## Recommended Next Steps
-
-{next_steps}
-
-## Human Approval Required
-
-A human analyst must review the alert before any containment action.
-
-## Limitations
-
-- The report is based only on the supplied sanitized Wazuh alert.
-- Additional telemetry may be required.
+- Additional telemetry may be required to confirm or dismiss the activity.
 - The report does not perform autonomous containment.
 """
 
@@ -564,29 +629,20 @@ def render_markdown(
     alert: dict[str, Any],
     ai_analysis: dict[str, Any],
 ) -> str:
-    """Choose the correct deterministic Markdown template."""
-    event_type = determine_event_type(alert)
+    """Compose the final report from the sanitized alert and AI analysis."""
     injection_detected = detect_prompt_injection(alert)
+    model_available = ai_analysis.get("model_available", True)
+
     recommendations = sanitize_recommendations(
-        ai_analysis["recommended_next_steps"],
+        ai_analysis.get("recommended_next_steps", []),
         injection_detected,
     )
 
-    if event_type == "ssh_success_after_failures":
-        return render_high_risk_report(
-            alert=alert,
-            recommendations=recommendations,
-        )
-
-    if event_type == "routine_ssh_success":
-        return render_routine_login_report(
-            alert=alert,
-            recommendations=recommendations,
-        )
-
-    return render_generic_report(
+    return render_report(
         alert=alert,
         recommendations=recommendations,
+        injection_detected=injection_detected,
+        model_available=model_available,
     )
 
 
@@ -632,11 +688,24 @@ def main() -> int:
 
     event_type = determine_event_type(sanitized_alert)
 
-    ai_analysis = query_ollama(
-        alert=sanitized_alert,
-        playbook=playbook,
-        event_type=event_type,
-    )
+    try:
+        ai_analysis = query_ollama(
+            alert=sanitized_alert,
+            playbook=playbook,
+            event_type=event_type,
+        )
+    except RuntimeError as exc:
+        # Fail safe: the model is advisory only. If it is unreachable, times
+        # out, or returns invalid output, the deterministic evidence is still
+        # authoritative. Emit a degraded-but-valid report rather than crashing.
+        print(
+            f"[!] Model unavailable — engaging fail-safe: {exc}",
+            file=sys.stderr,
+        )
+        ai_analysis = {
+            "recommended_next_steps": [],
+            "model_available": False,
+        }
 
     report = render_markdown(
         alert=sanitized_alert,
