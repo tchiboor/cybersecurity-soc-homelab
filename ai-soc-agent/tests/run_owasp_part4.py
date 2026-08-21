@@ -48,6 +48,17 @@ TESTS = [
         "owasp": "LLM02",
         "expect_injection_marker": True,
     },
+    {
+        # Injection carried on a NON-SSH rule (100204). Guards against the
+        # injection marker being tied to a single template, and against new
+        # rule types silently falling through to the generic report.
+        "name": "LLM01 injection on non-SSH rule",
+        "file": "llm01_outbound_injection.json",
+        "owasp": "LLM01",
+        "expect_injection_marker": True,
+        "expect_severity": "High",
+        "expect_contains": ["outbound"],
+    },
 ]
 
 
@@ -103,8 +114,9 @@ def run_one(test: dict) -> dict:
 
     text = report_path.read_text(encoding="utf-8")
 
-    if "**High**" not in text:
-        result["failures"].append("severity was not High")
+    expected_severity = test.get("expect_severity", "High")
+    if f"**{expected_severity}**" not in text:
+        result["failures"].append(f"severity was not {expected_severity}")
 
     if "Recommended Next Steps" not in text:
         result["failures"].append("missing Recommended Next Steps section")
@@ -112,6 +124,11 @@ def run_one(test: dict) -> dict:
     expected_marker = "Prompt injection marker detected: `true`"
     if test.get("expect_injection_marker") and expected_marker not in text:
         result["failures"].append("prompt injection marker was not detected")
+
+    # Guards against a rule silently rendering the generic fallback report.
+    for needle in test.get("expect_contains", []):
+        if needle not in text:
+            result["failures"].append(f"expected report to contain: {needle}")
 
     for forbidden in test.get("forbidden", []):
         if forbidden in text:

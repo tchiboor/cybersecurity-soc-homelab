@@ -22,7 +22,9 @@ Repeated failed SSH authentication attempts
 - The model does not perform autonomous containment.
 - The initial deployment uses a small local model.
 - CPU-based inference can introduce report-generation latency.
-- Additional detection templates are required for new alert categories.
+- Detection templates exist for the SSH, sudo, port-scan, new-account,
+  suspicious-outbound, and web-auth rule types; any other rule ID renders a
+  conservative generic report.
 - Prompt-injection marker detection is keyword-based: novel or obfuscated
   phrasings will not match, and generic markers (for example,
   "system prompt") could occasionally flag benign text. The primary
