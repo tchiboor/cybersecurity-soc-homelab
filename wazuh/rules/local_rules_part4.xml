@@ -1,0 +1,98 @@
+<!--
+  Custom Wazuh detection rules for Part 4 (rules 100201-100205).
+
+  These extend the Part 3 rule (100101) with five additional alert types the
+  AI triage agent already understands:
+    100201  sudo_failure                  T1548.003
+    100202  port_scan                     T1046
+    100203  new_privileged_account        T1136.001 / T1098
+    100204  suspicious_outbound_connection T1071 / T1105
+    100205  web_auth_failure              T1110.003
+
+  >>> VERIFY BEFORE DEPLOYING <<<
+  The <if_sid> / <if_matched_sid> parent IDs below are the common Wazuh 4.x
+  defaults, but base rule IDs and decoded field names vary by version, decoder
+  set, and log source. For EACH rule, confirm the parent SID and the fields it
+  decodes by feeding a real sample log line through:
+
+      sudo /var/ossec/bin/wazuh-logtest
+
+  Paste an actual log line, read the "Rule id" and "Decoded" fields it reports,
+  and adjust the parent SID / field names here to match. Then reload:
+
+      sudo systemctl restart wazuh-manager
+
+  Notes on thresholds:
+  - Wazuh 'frequency' counts EVENTS in a timeframe, not distinct field values.
+    So 100202 fires on "N firewall/IDS events from the same source IP", which
+    approximates "N unique ports". That is the honest, achievable version of
+    the fixture's "8 unique ports"; call this out in the writeup.
+-->
+<group name="local,custom_detection,part4,">
+
+  <!-- 100201: repeated failed sudo attempts (privilege escalation attempt) -->
+  <!-- Base 5401 = "Failed attempt to run sudo" (verify with logtest).       -->
+  <rule id="100201" level="8" frequency="3" timeframe="60">
+    <if_matched_sid>5401</if_matched_sid>
+    <same_user />
+    <description>sudo: repeated failed sudo authentication attempts by the same user.</description>
+    <mitre>
+      <id>T1548.003</id>
+    </mitre>
+    <group>sudo,authentication_failed,privilege_escalation,</group>
+  </rule>
+
+  <!-- 100202: port scan / reconnaissance from a single source.             -->
+  <!-- Chain off firewall block events (OPNsense/pf) OR Suricata recon.      -->
+  <!-- Base 4151 is a common pf/firewall drop group; if you route Suricata   -->
+  <!-- eve.json instead, chain off its scan signature SID (verify logtest).  -->
+  <rule id="100202" level="10" frequency="8" timeframe="30">
+    <if_matched_group>firewall_drop</if_matched_group>
+    <same_source_ip />
+    <description>Firewall: multiple blocked connections from the same source IP (possible port scan / reconnaissance).</description>
+    <mitre>
+      <id>T1046</id>
+    </mitre>
+    <group>firewall,reconnaissance,port_scan,</group>
+  </rule>
+
+  <!-- 100203: new account created and/or added to a privileged group.      -->
+  <!-- Base 5902 = "New user added to the system" (verify with logtest).     -->
+  <rule id="100203" level="12">
+    <if_sid>5902</if_sid>
+    <description>auditd: new user account created on the system.</description>
+    <mitre>
+      <id>T1136.001</id>
+      <id>T1098</id>
+    </mitre>
+    <group>account_change,privilege_change,</group>
+  </rule>
+
+  <!-- 100204: suspicious outbound connection (possible C2 / exfiltration).  -->
+  <!-- Depends on egress logging from OPNsense reaching Wazuh. Match on the   -->
+  <!-- destination port field your firewall decoder populates (dstport).     -->
+  <rule id="100204" level="13">
+    <if_group>firewall</if_group>
+    <match>4444</match>
+    <description>Firewall: outbound connection to a suspicious destination port (possible C2 / data transfer).</description>
+    <mitre>
+      <id>T1071</id>
+      <id>T1105</id>
+    </mitre>
+    <group>firewall,egress,possible_c2,</group>
+  </rule>
+
+  <!-- 100205: repeated web authentication failures (credential attack).     -->
+  <!-- Base 31108/31101 web 401/400 family (verify with logtest). Chain on    -->
+  <!-- the 401 status your web decoder produces.                             -->
+  <rule id="100205" level="10" frequency="10" timeframe="300">
+    <if_matched_sid>31108</if_matched_sid>
+    <same_source_ip />
+    <description>Web: repeated authentication failures to a login endpoint from the same source IP (credential attack).</description>
+    <mitre>
+      <id>T1110.003</id>
+    </mitre>
+    <group>web,authentication_failed,credential_attack,</group>
+  </rule>
+
+</group>
