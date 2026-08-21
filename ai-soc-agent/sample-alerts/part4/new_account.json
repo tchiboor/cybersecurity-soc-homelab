@@ -3,12 +3,22 @@
   "rule": {
     "id": "100203",
     "level": 12,
-    "description": "New user tempuser99 created by jdoe and added to sudo and docker groups on prod-server-01",
+    "description": "New user tempuser99 created by jdoe on prod-server-01",
     "frequency": 1,
-    "groups": ["auditd", "account_change", "privilege_change"],
+    "groups": [
+      "auditd",
+      "account_change",
+      "privilege_change"
+    ],
     "mitre": {
-      "id": ["T1136.001", "T1098"],
-      "technique": ["Local Account", "Account Manipulation"]
+      "id": [
+        "T1136.001",
+        "T1098"
+      ],
+      "technique": [
+        "Local Account",
+        "Account Manipulation"
+      ]
     }
   },
   "agent": {

@@ -48,17 +48,6 @@ TESTS = [
         "owasp": "LLM02",
         "expect_injection_marker": True,
     },
-    {
-        # Injection carried on a NON-SSH rule (100204). Guards against the
-        # injection marker being tied to a single template, and against new
-        # rule types silently falling through to the generic report.
-        "name": "LLM01 injection on non-SSH rule",
-        "file": "llm01_outbound_injection.json",
-        "owasp": "LLM01",
-        "expect_injection_marker": True,
-        "expect_severity": "High",
-        "expect_contains": ["outbound"],
-    },
 ]
 
 

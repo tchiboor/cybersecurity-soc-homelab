@@ -433,14 +433,14 @@ EVENT_TEMPLATES: dict[str, dict[str, str]] = {
     },
     "new_privileged_account": {
         "summary": (
-            "A new account `{dstuser}` was created on `{agent_name}` and added "
-            "to privileged groups; source IP `{srcip}`."
+            "A new local account `{dstuser}` was created on `{agent_name}`; "
+            "source IP `{srcip}`."
         ),
         "interpretation": (
-            "Creation of a new account with privileged group membership is a "
-            "common persistence and privilege-escalation technique. Verify the "
-            "change against an approved change request and confirm the creating "
-            "actor was authorized."
+            "Creation of a new local account can indicate persistence when it is "
+            "not tied to an approved administrative change. Verify the change "
+            "against an approved request and confirm the creating actor was "
+            "authorized."
         ),
         "approval": (
             "Yes. A human analyst must verify authorization before any "
